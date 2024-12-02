@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 
 mod day01;
+mod day02;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -19,6 +20,7 @@ fn main() {
 
     match day {
         1 => day01::run(contents, part),
+        2 => day02::run(contents, part),
         _ => println!("Failed because code for this day wasn't found!"),
     }
 }
