@@ -41,14 +41,13 @@ impl Position {
 fn get_unvisited_positions(guard_position: &Position, guard_direction: &str, line_count: usize, line_length: usize, obstacles: Vec<Position>) -> HashMap<(usize, usize), Vec<String>> {
     let mut new_guard_position = guard_position.clone();
     let mut unvisited_positions: HashMap<(usize, usize), Vec<String>> = HashMap::new();
-    let mut new_empty_vec: Vec<String> = Vec::new();
     loop {
         let next_position = new_guard_position.get_next_position_backwards( &guard_direction);
         if next_position.x >= 0 as usize && next_position.y >= 0 as usize && next_position.x < line_count && next_position.y < line_length {
-            if let Some(v) = unvisited_positions.get(&(next_position.x.clone(), next_position.y.clone())) {
+            if let Some(v) = unvisited_positions.get_mut(&(next_position.x.clone(), next_position.y.clone())) {
                 v.push(guard_direction.to_string());
             } else {
-                unvisited_positions.insert((next_position.x.clone(), next_position.y.clone()), & mut vec![guard_direction.to_string()]);
+                unvisited_positions.insert((next_position.x.clone(), next_position.y.clone()), vec![guard_direction.to_string()]);
             }
             match obstacles.iter().find(|position| position.x == next_position.x && position.y == next_position.y) {
                 None => {
@@ -72,8 +71,8 @@ pub fn run(contents: String, part: &i8) {
     let guard_directions: Vec<&&str> = DIRECTIONS_MAP.keys().collect();
     let mut guard_direction = String::new();
     let mut guard_position = Position { x: 0, y: 0 };
-    let mut visited_positions: HashMap<(usize, usize), & mut Vec<String>> = HashMap::new();
-    let mut unvisited_positions: HashMap<(usize, usize), & mut Vec<String>> = HashMap::new();
+    let mut visited_positions: HashMap<(usize, usize), Vec<String>> = HashMap::new();
+    let mut unvisited_positions: HashMap<(usize, usize), Vec<String>> = HashMap::new();
     let mut obstacles = Vec::new();
     let mut line_length = 0; 
     contents.lines().enumerate().for_each(|(i, line)| {
@@ -94,13 +93,15 @@ pub fn run(contents: String, part: &i8) {
     println!("Line count {:?}", line_count);
     println!("Guard position {:?} and direction {}", guard_position, guard_direction);
     // START WALKING
+    unvisited_positions = get_unvisited_positions(&guard_position, &guard_direction, line_count, line_length, obstacles.clone());
     loop {
-        visited_positions.insert((guard_position.x.clone(), guard_position.y.clone()), & mut vec![guard_direction]);
+        visited_positions.insert((guard_position.x.clone(), guard_position.y.clone()), vec![guard_direction.clone()]);
         let next_position = guard_position.get_next_position( &guard_direction);
         if next_position.x >= 0 as usize && next_position.y >= 0 as usize && next_position.x < line_count && next_position.y < line_length {
             let new_entry = (next_position.x.clone(), next_position.y.clone());
-            let unvisited_vec = unvisited_positions.get(&new_entry).unwrap_or_else(|| &Vec::new());
-            let visited_vec = visited_positions.get(&new_entry).unwrap_or_else(|| &Vec::new());
+            let unvisited_vec = unvisited_positions.get(&new_entry).unwrap_or(&vec![]).clone();
+            let temp_vec = Vec::new();
+            let visited_vec = visited_positions.get(&new_entry).unwrap_or(&temp_vec);
             let possible_next_direction = NEXT_DIRECTION_MAP.get(&guard_direction).unwrap().to_string();
             if unvisited_vec.contains(&possible_next_direction) || visited_vec.contains(&possible_next_direction) {
                 println!("{:?}", new_entry);
@@ -108,17 +109,25 @@ pub fn run(contents: String, part: &i8) {
             };
             match obstacles.clone().iter().find(|position| position.x == next_position.x && position.y == next_position.y) {
                 None => {
-                    if let Some(v) = visited_positions.get(&new_entry) {
-                        v.push(guard_direction);
+                    if let Some(v) = visited_positions.get_mut(&new_entry) {
+                        v.push(guard_direction.clone());
                     } else {
-                        visited_positions.insert(new_entry, & mut vec![guard_direction]);
+                        visited_positions.insert(new_entry, vec![guard_direction.clone()]);
                     }
                     guard_position = next_position.clone();
                     // println!("{:?}", guard_position);
                 },
                 Some(_) => {
                     guard_direction = NEXT_DIRECTION_MAP.get(&guard_direction).unwrap().to_string();
-                    // unvisited_positions = unvisited_positions.union(&get_unvisited_positions(&guard_position, &guard_direction, line_count, line_length, obstacles.clone())).cloned().collect();
+                    let new_unvisited_positions = get_unvisited_positions(&guard_position, &guard_direction, line_count, line_length, obstacles.clone());
+                    new_unvisited_positions.iter().for_each(|(key, value)| {
+                        if let Some(v) = unvisited_positions.get_mut(key) {
+                            v.extend(value.clone());
+                        } else {
+                            unvisited_positions.insert(key.clone(), value.clone());
+                        }
+                    });
+                    // unvisited_positions = unvisited_positions.union(&).cloned().collect();
                     // println!("Position {:?} Direction {:?}", guard_position, guard_direction);
                     // println!("Unvisited out {:?}", unvisited_positions);
                 },
