@@ -9,6 +9,7 @@ mod day05;
 mod day06;
 mod day07;
 mod day09;
+mod day10;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -33,6 +34,7 @@ fn main() {
         6 => day06::run(contents, part),
         7 => day07::run(contents, part),
         9 => day09::run(contents, part),
+        10 => day10::run(contents, part),
         _ => println!("Failed because code for this day wasn't found!"),
     }
 }
