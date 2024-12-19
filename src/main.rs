@@ -8,6 +8,7 @@ mod day04;
 mod day05;
 mod day06;
 mod day07;
+mod day08;
 mod day09;
 mod day10;
 mod day11;
@@ -37,6 +38,7 @@ fn main() {
         5 => day05::run(contents, part),
         6 => day06::run(contents, part),
         7 => day07::run(contents, part),
+        8 => day08::run(contents, part),
         9 => day09::run(contents, part),
         10 => day10::run(contents, part),
         11 => day11::run(contents, part),
