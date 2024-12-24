@@ -15,6 +15,7 @@ mod day11;
 mod day12;
 mod day13;
 mod day14;
+mod day15;
 
 
 fn main() {
@@ -46,6 +47,7 @@ fn main() {
         12 => day12::run(contents, part),
         13 => day13::run(contents, part),
         14 => day14::run(contents, part),
+        15 => day15::run(contents, part),
         _ => println!("Failed because code for this day wasn't found!"),
     }
 }
