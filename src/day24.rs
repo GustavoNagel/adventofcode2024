@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use itertools::Itertools;
 use regex::Regex;
+use graph_builder::prelude::*;
 
 fn compute_gate_operations(mut wire_values: HashMap<String, u8>, gates: Vec<(String, &str, &str, &str)>) -> HashMap<String, u8> {
     let mut pending_operations = gates.clone();
@@ -64,8 +65,73 @@ pub fn run(contents: String, part: &i8) {
         let decimal_number = binary_values.iter().fold(0, |acc, x| acc * 2 + x);
         println!("Response Decimal: {}", decimal_number);
     } else if part == &2 {
-        // TODO: find pairs to swap
-        let wire_pairs = vec![vec!["aaa","eee"],vec!["ooo","z99"],vec!["bbb","ccc"],vec!["aoc","z24"]];
+        let mut graph_edges = vec![];
+        let mut numeric_graph_edges = vec![];
+        let mut nodes = vec![];
+        gates.iter().for_each(|(_gate_type, gate_input1, gate_input2, gate_output)| {
+            if !nodes.contains(&gate_input1) {
+                nodes.push(gate_input1);
+            }
+            if !nodes.contains(&gate_input2) {
+                nodes.push(gate_input2);
+            }
+            if !nodes.contains(&gate_output) {
+                nodes.push(gate_output);
+            }
+            let output_index = nodes.iter().position(|&x| x == gate_output).unwrap() as i32;
+            let input1_index = nodes.iter().position(|&x| x == gate_input1).unwrap() as i32;
+            let input2_index = nodes.iter().position(|&x| x == gate_input2).unwrap() as i32;
+            let (ix, color) = match _gate_type.as_str() {
+                "and" => (1, "red"),
+                "or" => (2, "blue"),
+                "xor" => (3, "green"),
+                _ => (4, "black")
+            };
+            let input1_name = format!("{}_{}", gate_input1, input1_index);
+            let input2_name = format!("{}_{}", gate_input2, input2_index);
+            let output_name = format!("{}_{}", gate_output, output_index);
+            numeric_graph_edges.push((input1_index, output_index, ix));
+            numeric_graph_edges.push((input2_index, output_index, ix));
+            graph_edges.push((input1_name, output_name.clone(), color));
+            graph_edges.push((input2_name, output_name, color));
+        });
+        let graph: DirectedCsrGraph<i32, (), i32> = GraphBuilder::new()
+            .csr_layout(CsrLayout::Sorted)
+            .edges_with_values(numeric_graph_edges)
+            .build();
+
+        println!("The following data can be used to build and visualize the graph:");
+        println!("graph G {{");
+        graph_edges.iter().for_each(|(input, output, color)| {
+            println!("  {} -- {} [color={}]", input, output, color);
+        });
+        println!("}}");
+        let mut patterns: HashMap<String, Vec<&str>> = HashMap::new();
+        gates.iter().for_each(|(_, _, _, gate_output)| {
+            let output_index = nodes.iter().position(|&x| x == gate_output).unwrap() as i32;
+            let mut outgoing: Vec<i32> = graph.out_neighbors_with_values(output_index).map(|t| t.value).sorted().collect();
+            let mut ingoing: Vec<i32> = graph.in_neighbors_with_values(output_index).map(|t| t.value).sorted().collect();
+            let sub_outgoing: Vec<i32> = graph.out_neighbors_with_values(output_index).map(|t| graph.out_neighbors_with_values(t.target).map(|t| t.value).collect::<Vec<i32>>()).flatten().sorted().collect();
+            let sub_ingoing: Vec<i32> = graph.in_neighbors_with_values(output_index).map(|t| graph.in_neighbors_with_values(t.target).map(|t| t.value).collect::<Vec<i32>>()).flatten().sorted().collect();
+
+            outgoing.extend(sub_outgoing);
+            ingoing.extend(sub_ingoing);
+            println!("{} -> outgoing: {:?} -> ingoing: {:?}", gate_output, outgoing, ingoing);
+            if patterns.contains_key(&format!("o{}i{}", outgoing.iter().join(","), ingoing.iter().join(","))) {
+                let current = patterns.get_mut(&format!("o{}i{}", outgoing.iter().join(","), ingoing.iter().join(","))).unwrap();
+                current.push(gate_output);
+            } else {
+                patterns.insert(format!("o{}i{}", outgoing.iter().join(","), ingoing.iter().join(",")), vec![gate_output]);
+            }
+        });
+        patterns.iter().for_each(|(k, v)| {
+            if v.len() < 10 {
+                println!("Not usual Pattern: {} -> {:?}", k, v);
+            }
+        });
+
+        // Response found from visual analysis: 118 e 41, 251 e 209, 151 e 168, 170 e 235
+        let wire_pairs = vec![vec!["qnw","z15"],vec!["cqr","z20"],vec!["ncd","nfj"],vec!["vkg","z37"]];
 
         println!("Response: {:?}", wire_pairs.into_iter().flatten().sorted().join(","));
     }
